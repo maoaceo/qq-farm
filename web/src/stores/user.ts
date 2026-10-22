@@ -52,6 +52,16 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function register(username: string, password: string, confirmPassword: string): Promise<LoginResult> {
+    const res = await api.post('/api/register', { username, password, confirmPassword })
+    if (res.data.ok) {
+      localStorage.removeItem('current_account_id')
+      token.value = res.data.data.token
+      userInfo.value = { username: res.data.data.user.username, role: 'user' }
+    }
+    return res.data
+  }
+
   async function completeOAuth() {
     const res = await api.post('/api/oauth/exchange')
     if (!res.data.ok) throw new Error('第三方登录失败')
@@ -98,5 +108,6 @@ export const useUserStore = defineStore('user', () => {
     fetchUserInfo,
     changePassword,
     completeOAuth,
+    register,
   }
 })

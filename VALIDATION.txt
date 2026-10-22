@@ -7,8 +7,8 @@ Validated in Debian chroot, Node.js v20.19.2, pnpm 10.30.2.
 - pnpm -C core typecheck: PASS
 - pnpm typecheck:web: PASS
 - pnpm build: PASS
-- pnpm -C core test: 288 passed, 0 failed
-- pnpm -C web test: 13 passed, 0 failed
+- pnpm -C core test: 290 passed, 0 failed
+- pnpm -C web test: 14 passed, 0 failed
 
 Integration tests: multiuser-isolation.test.js, oidc-login.test.js.
 OIDC cryptographic tests use real locally generated RSA keys.
@@ -17,3 +17,5 @@ No real Google/OIDC or game account end-to-end verification was performed.
 No existing production instance or account data was modified.
 GitHub push status must be verified separately; this file does not claim upload.
 See docs/multiuser.md and docs/oauth-oidc.md.
+
+Local registration: username/password + confirmation, normal role only, auto-login, duplicate/weak-password checks, opt-out toggle and rate limiting.

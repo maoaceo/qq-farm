@@ -23,6 +23,7 @@ const adminLogger = createModuleLogger('admin');
 function mountAuthRoutes(app: Application, ctx: AdminContext): void {
     const authRequired = createAuthRequired(ctx);
     require('./oauth-routes').mountOAuthRoutes(app, ctx);
+    require('./registration-routes').mountRegistrationRoutes(app, ctx);
 
     app.post('/api/login', (req: Request, res: Response) => {
         const { username, password } = req.body || {};

@@ -14,6 +14,13 @@ const gameVersion = ref('')
 const wxGameVersion = ref('')
 const username = ref('')
 const password = ref('')
+const confirmPassword = ref('')
+const registering = ref(false)
+const registrationEnabled = ref(false)
+function toggleRegistration() {
+  registering.value = !registering.value
+  error.value = ''; success.value = ''; confirmPassword.value = ''; password.value = ''
+}
 const error = ref('')
 const success = ref('')
 const loading = ref(false)
@@ -28,8 +35,8 @@ const usernameValid = computed(() => {
     return { valid: false, message: '用户名至少3位' }
   if (name.length > 32)
     return { valid: false, message: '用户名最多32位' }
-  if (!/^\w+$/.test(name))
-    return { valid: false, message: '只能包含字母、数字、下划线' }
+  if (!/^[a-zA-Z0-9_-]+$/.test(name))
+    return { valid: false, message: '只能包含字母、数字、下划线或短横线' }
   return { valid: true, message: '' }
 })
 
@@ -58,7 +65,13 @@ async function handleSubmit() {
   success.value = ''
 
   try {
-    const result = await userStore.login(username.value, password.value)
+    if (registering.value && password.value !== confirmPassword.value) {
+      error.value = '两次输入的密码不一致'
+      return
+    }
+    const result = registering.value
+      ? await userStore.register(username.value, password.value, confirmPassword.value)
+      : await userStore.login(username.value, password.value)
     if (result.ok) {
       if (result.data?.mustChangePassword)
         success.value = '登录成功，请修改默认密码'
@@ -126,7 +139,10 @@ onMounted(async () => {
     window.history.replaceState(null, '', '/login')
     error.value = '第三方认证失败、用户已禁用或尚未开启自动注册，请联系管理员'
   }
-  await fetchGameVersion()
+  await Promise.all([
+    fetchGameVersion(),
+    api.get('/api/registration').then(res => { registrationEnabled.value = res.data?.data?.enabled === true }).catch(() => {}),
+  ])
   try { const res = await api.get('/api/oauth/providers'); if (res.data.ok) oauthProviders.value = res.data.data } catch { /* Local password login remains available. */ }
 })
 </script>
@@ -142,7 +158,7 @@ onMounted(async () => {
             QQ农场智能助手
           </h1>
           <p class="logo-subtitle">
-            用户登录
+            {{ registering ? '用户注册' : '用户登录' }}
           </p>
         </div>
       </header>
@@ -182,9 +198,16 @@ onMounted(async () => {
             v-model="password"
             type="password"
             placeholder="请输入密码"
-            autocomplete="current-password"
+            :autocomplete="registering ? 'new-password' : 'current-password'"
+            maxlength="128"
             required
           />
+        </div>
+
+        <div v-if="registering" class="form-group">
+          <label class="form-label" for="confirm-password">确认密码</label>
+          <BaseInput id="confirm-password" v-model="confirmPassword" type="password" placeholder="再次输入密码" autocomplete="new-password" required maxlength="128" />
+          <p class="form-hint">密码至少6位，包含大小写字母、数字、特殊符号中的至少两种。</p>
         </div>
 
         <div v-if="error" class="message error-message" role="alert">
@@ -203,10 +226,15 @@ onMounted(async () => {
         <BaseButton type="submit" variant="primary" block :loading="loading" class="submit-btn">
           <span v-if="!loading" class="inline-flex items-center gap-2">
             <span class="i-carbon-login" />
-            登录
+            {{ registering ? '注册并登录' : '登录' }}
           </span>
         </BaseButton>
       </form>
+      <div v-if="registrationEnabled" class="mt-4 text-center">
+        <button type="button" class="rounded-lg border px-4 py-2" :disabled="loading" @click="toggleRegistration">
+          {{ registering ? '已有账号？返回登录' : '没有账号？普通注册' }}
+        </button>
+      </div>
 
       <footer class="card-footer">
         <div class="footer-info">
@@ -214,7 +242,7 @@ onMounted(async () => {
           <span v-if="gameVersion">QQ {{ gameVersion }}</span>
           <span v-if="wxGameVersion">微信 {{ wxGameVersion }}</span>
         </div>
-        <a href="https://github.com/liyangpengs/qq-farm-bot" target="_blank" rel="noopener noreferrer" class="github-link" aria-label="GitHub">
+        <a href="https://github.com/maoaceo/qq-farm" target="_blank" rel="noopener noreferrer" class="github-link" aria-label="GitHub">
           <span class="i-carbon-logo-github" />
         </a>
       </footer>
