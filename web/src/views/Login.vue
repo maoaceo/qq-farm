@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import api, { getApiErrorMessage } from '@/api'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
+import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import BrandMark from '@/components/ui/BrandMark.vue'
 import { useUserStore } from '@/stores/user'
 
@@ -16,8 +17,12 @@ const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const registering = ref(false)
+const turnstileConfig = ref({ enabled: false, siteKey: '' })
+const turnstileToken = ref('')
+const turnstileWidget = ref<InstanceType<typeof TurnstileWidget> | null>(null)
 const registrationEnabled = ref(false)
 function toggleRegistration() {
+  turnstileToken.value = ''
   registering.value = !registering.value
   error.value = ''; success.value = ''; confirmPassword.value = ''; password.value = ''
 }
@@ -69,8 +74,9 @@ async function handleSubmit() {
       error.value = '两次输入的密码不一致'
       return
     }
+    if (registering.value && turnstileConfig.value.enabled && !turnstileToken.value) { error.value = '请先完成人机验证'; return }
     const result = registering.value
-      ? await userStore.register(username.value, password.value, confirmPassword.value)
+      ? await userStore.register(username.value, password.value, confirmPassword.value, turnstileToken.value)
       : await userStore.login(username.value, password.value)
     if (result.ok) {
       if (result.data?.mustChangePassword)
@@ -110,6 +116,7 @@ async function handleSubmit() {
     }
   }
   finally {
+    if (registering.value) { turnstileToken.value = ''; turnstileWidget.value?.reset() }
     loading.value = false
   }
 }
@@ -141,7 +148,7 @@ onMounted(async () => {
   }
   await Promise.all([
     fetchGameVersion(),
-    api.get('/api/registration').then(res => { registrationEnabled.value = res.data?.data?.enabled === true }).catch(() => {}),
+    api.get('/api/registration').then(res => { registrationEnabled.value = res.data?.data?.enabled === true; turnstileConfig.value = res.data?.data?.turnstile || { enabled: false, siteKey: '' } }).catch(() => {}),
   ])
   try { const res = await api.get('/api/oauth/providers'); if (res.data.ok) oauthProviders.value = res.data.data } catch { /* Local password login remains available. */ }
 })
@@ -210,6 +217,7 @@ onMounted(async () => {
           <p class="form-hint">密码至少6位，包含大小写字母、数字、特殊符号中的至少两种。</p>
         </div>
 
+        <TurnstileWidget v-if="registering && turnstileConfig.enabled" ref="turnstileWidget" :site-key="turnstileConfig.siteKey" @token="turnstileToken = $event" />
         <div v-if="error" class="message error-message" role="alert">
           <span class="i-carbon-warning-alt" />
           <div>
@@ -223,7 +231,7 @@ onMounted(async () => {
           {{ success }}
         </div>
 
-        <BaseButton type="submit" variant="primary" block :loading="loading" class="submit-btn">
+        <BaseButton type="submit" variant="primary" block :loading="loading" :disabled="registering && turnstileConfig.enabled && !turnstileToken" class="submit-btn">
           <span v-if="!loading" class="inline-flex items-center gap-2">
             <span class="i-carbon-login" />
             {{ registering ? '注册并登录' : '登录' }}

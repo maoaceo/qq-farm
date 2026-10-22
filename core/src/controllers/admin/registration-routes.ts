@@ -1,6 +1,7 @@
 import type { Application, Request, Response } from 'express';
 import type { AdminContext } from './context';
 export {};
+const turnstile = require('../../services/turnstile');
 const users = require('../../models/user-store');
 const { issueToken } = require('./middleware');
 function mountRegistrationRoutes(app: Application, ctx: AdminContext): void {
@@ -9,9 +10,9 @@ function mountRegistrationRoutes(app: Application, ctx: AdminContext): void {
     const limits = new Map<string, { count: number; expires: number }>();
     app.get('/api/registration', (_req: Request, res: Response) => {
         res.set('Cache-Control', 'no-store');
-        res.json({ ok: true, data: { enabled: enabled() } });
+        res.json({ ok: true, data: { enabled: enabled(), turnstile: turnstile.publicConfig() } });
     });
-    app.post('/api/register', (req: Request, res: Response) => {
+    app.post('/api/register', async (req: Request, res: Response) => {
         res.set('Cache-Control', 'no-store');
         if (!enabled()) return res.status(403).json({ ok: false, error: '管理员已关闭普通注册' });
         const now = Date.now();
@@ -30,6 +31,7 @@ function mountRegistrationRoutes(app: Application, ctx: AdminContext): void {
         if (password !== confirmPassword) return res.status(400).json({ ok: false, error: '两次输入的密码不一致' });
         if (username.length > 32 || password.length > 128) return res.status(400).json({ ok: false, error: '用户名或密码过长' });
         try {
+            if (!await turnstile.verify(req.body?.turnstileToken)) return res.status(400).json({ ok: false, error: '人机验证失败或已过期，请重新验证' });
             // Only these two fields are accepted; role, disabled, ownerId etc. are ignored.
             const user = users.create(username.trim(), password);
             const token = issueToken(); ctx.tokens.add(token); ctx.sessions.set(token, user.id);

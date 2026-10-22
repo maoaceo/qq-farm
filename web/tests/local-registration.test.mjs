@@ -12,7 +12,7 @@ function setup(store) {
   const module = { exports: {} }
   const api = { get: async () => ({ data: { ok: true } }) }
   const load = id => id === 'vue' ? { ...vue, onMounted: () => {} } : id === '@/stores/user' ? { useUserStore: () => store } : id === '@/api' ? { __esModule: true, default: api, getApiErrorMessage: e => e.message } : { default: {} }
-  return new Function('require', 'module', 'exports', '__APP_VERSION__', 'setTimeout', `${outputText}\nreturn { username, password, confirmPassword, registering, error, loading, toggleRegistration, handleSubmit };`)(load, module, module.exports, 'test', () => {})
+  return new Function('require', 'module', 'exports', '__APP_VERSION__', 'setTimeout', `${outputText}\nreturn { username, password, confirmPassword, registering, error, loading, turnstileConfig, turnstileToken, turnstileWidget, toggleRegistration, handleSubmit };`)(load, module, module.exports, 'test', () => {})
 }
 test('registration entry toggles form, checks confirmation and invokes real register action', async () => {
   assert.match(source, /没有账号？普通注册/)
@@ -24,7 +24,20 @@ test('registration entry toggles form, checks confirmation and invokes real regi
   view.password.value = 'SafePass42!'; view.confirmPassword.value = 'wrong'
   await view.handleSubmit(); assert.equal(calls.length, 0); assert.match(view.error.value, /不一致/); assert.equal(view.loading.value, false)
   view.confirmPassword.value = 'SafePass42!'
-  await view.handleSubmit(); assert.deepEqual(calls[0], ['register', 'new-user', 'SafePass42!', 'SafePass42!'])
+  await view.handleSubmit(); assert.deepEqual(calls[0], ['register', 'new-user', 'SafePass42!', 'SafePass42!', ''])
   view.toggleRegistration(); assert.equal(view.registering.value, false); assert.equal(view.password.value, '')
   view.password.value = 'SafePass42!'; await view.handleSubmit(); assert.deepEqual(calls[1], ['login', 'new-user', 'SafePass42!'])
+})
+
+test('enabled Turnstile blocks registration without token and resets after submission', async () => {
+  const calls = []
+  let reset = 0
+  const view = setup({ register: async (...args) => { calls.push(args); return { ok: false, error: 'retry' } } })
+  view.username.value = 'new_user'; view.registering.value = true
+  view.password.value = 'SafePass42!'; view.confirmPassword.value = 'SafePass42!'
+  view.turnstileConfig.value = { enabled: true, siteKey: 'site' }
+  view.turnstileWidget.value = { reset: () => reset++ }
+  await view.handleSubmit(); assert.equal(calls.length, 0); assert.match(view.error.value, /人机验证/)
+  view.turnstileToken.value = 'verified-token'
+  await view.handleSubmit(); assert.equal(calls[0][3], 'verified-token'); assert.equal(view.turnstileToken.value, ''); assert.ok(reset > 0)
 })

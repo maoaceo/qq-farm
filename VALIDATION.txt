@@ -7,8 +7,8 @@ Validated in Debian chroot, Node.js v20.19.2, pnpm 10.30.2.
 - pnpm -C core typecheck: PASS
 - pnpm typecheck:web: PASS
 - pnpm build: PASS
-- pnpm -C core test: 290 passed, 0 failed
-- pnpm -C web test: 14 passed, 0 failed
+- pnpm -C core test: 291 passed, 0 failed
+- pnpm -C web test: 15 passed, 0 failed
 
 Integration tests: multiuser-isolation.test.js, oidc-login.test.js.
 OIDC cryptographic tests use real locally generated RSA keys.
@@ -19,3 +19,5 @@ GitHub push status must be verified separately; this file does not claim upload.
 See docs/multiuser.md and docs/oauth-oidc.md.
 
 Local registration: username/password + confirmation, normal role only, auto-login, duplicate/weak-password checks, opt-out toggle and rate limiting.
+
+Turnstile registration: administrator settings with redacted secret, server-side verification, action/hostname checks, fail-closed errors; Siteverify responses mocked in tests.

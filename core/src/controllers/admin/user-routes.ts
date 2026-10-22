@@ -9,6 +9,16 @@ function mountUserRoutes(app: Application, ctx: AdminContext): void {
         if (principal(ctx, req)?.role !== 'admin') return res.status(403).json({ ok: false, error: '仅管理员可管理用户' });
         return next();
     });
+    app.get('/api/users/turnstile', (_req, res) => {
+        res.set('Cache-Control', 'no-store');
+        try { res.json({ ok: true, data: require('../../services/turnstile').adminConfig() }); }
+        catch { res.status(503).json({ ok: false, error: '读取验证配置失败' }); }
+    });
+    app.post('/api/users/turnstile', (req, res) => {
+        res.set('Cache-Control', 'no-store');
+        try { res.json({ ok: true, data: require('../../services/turnstile').save(req.body || {}) }); }
+        catch { res.status(400).json({ ok: false, error: '保存失败：开启验证需填写有效的 Site Key 和 Secret Key' }); }
+    });
     app.get('/api/users', (_req, res) => res.json({ ok: true, data: users.list() }));
     app.post('/api/users', (req, res) => {
         try { res.json({ ok: true, data: users.create(String(req.body?.username || '').trim(), String(req.body?.password || '')) }); }

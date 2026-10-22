@@ -52,8 +52,8 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function register(username: string, password: string, confirmPassword: string): Promise<LoginResult> {
-    const res = await api.post('/api/register', { username, password, confirmPassword })
+  async function register(username: string, password: string, confirmPassword: string, turnstileToken = ''): Promise<LoginResult> {
+    const res = await api.post('/api/register', { username, password, confirmPassword, turnstileToken })
     if (res.data.ok) {
       localStorage.removeItem('current_account_id')
       token.value = res.data.data.token
