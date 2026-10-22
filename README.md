@@ -1,6 +1,6 @@
 # QQ 农场多账号挂机 + 多用户 Web 面板
 
-本分支基于 `liyangpengs/qq-farm-bot` 增加用户权限隔离、管理员用户管理，以及 **Google / 通用 OIDC 自动注册登录**。配置见 [OAuth/OIDC 文档](docs/oauth-oidc.md) 与 [多用户迁移说明](docs/multiuser.md)。第三方凭据仅放部署环境，禁止提交到仓库。
+本分支基于 `liyangpengs/qq-farm-bot` 增加用户权限隔离、管理员用户管理，以及 **Google / 通用 OIDC 自动注册登录**。支持 [妖火账号登录](docs/yaohuo.md)。配置见 [OAuth/OIDC 文档](docs/oauth-oidc.md) 与 [多用户迁移说明](docs/multiuser.md)。第三方凭据仅放部署环境，禁止提交到仓库。
 
 基于 Node.js 的 QQ 农场自动化工具，提供多账号挂机、农场与好友自动化、作物与超变图鉴、活动中心、商城、数据分析和 Web 控制面板。当前项目版本为 `20261022`，QQ 与微信游戏协议版本均为 `1.15.1.4_20261001`，两端独立维护版本配置和 TSDK/WASM。
 

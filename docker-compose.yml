@@ -26,6 +26,9 @@ services:
       - OIDC_ISSUER=${OIDC_ISSUER:-}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
       - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-}
+      - OIDC_SCOPES=${OIDC_SCOPES:-openid profile}
+      - OIDC_PKCE=${OIDC_PKCE:-true}
+      - OIDC_TOKEN_AUTH_METHOD=${OIDC_TOKEN_AUTH_METHOD:-auto}
       - OIDC_AUTO_REGISTER=${OIDC_AUTO_REGISTER:-false}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3007/api/game-version"]

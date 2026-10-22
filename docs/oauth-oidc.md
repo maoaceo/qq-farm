@@ -1,5 +1,7 @@
 # Google / 通用 OIDC 注册与登录
 
+妖火用户可直接参照 [妖火接入步骤](yaohuo.md)。
+
 本地多用户改造版新增 Google 与一个通用 OIDC 提供方入口；可同时启用。它是 OAuth 2.0 Authorization Code + OpenID Connect 身份认证，不支持仅提供 OAuth、没有 ID Token 的提供方（例如不能直接把 GitHub OAuth 当作 OIDC 配置）。
 
 ## 管理员配置
@@ -25,7 +27,7 @@ OIDC_CLIENT_ID=your-client-id
 OIDC_CLIENT_SECRET=your-client-secret
 ```
 
-`OIDC_ISSUER` 必须与 discovery 返回的 `issuer` 完全一致（包括尾部斜线）。提供方必须支持 discovery、授权码、PKCE S256、JWKS、RS256 或 ES256 ID Token，以及 client_secret_basic 或 client_secret_post。授权和 token/JWKS 等端点都必须 HTTPS。当前不支持自签证书例外、动态用户指定 issuer、多个通用 issuer、设备码、纯 OAuth 或 SAML。
+`OIDC_ISSUER` 必须与 discovery 返回的 `issuer` 完全一致（包括尾部斜线）。提供方必须支持 discovery、授权码、JWKS、RS256 或 ES256 ID Token，以及 client_secret_basic 或 client_secret_post。授权和 token/JWKS 等端点都必须 HTTPS。当前不支持自签证书例外、动态用户指定 issuer、多个通用 issuer、设备码、纯 OAuth 或 SAML。
 
 Docker Compose 已透传这些环境变量：修改本地 `.env` 后执行 `docker compose up -d --build`。
 **源码启动不会自动读取 `.env`**：请通过 shell export、systemd EnvironmentFile 或进程管理器安全地注入环境变量后再启动。
@@ -44,7 +46,7 @@ Docker Compose 已透传这些环境变量：修改本地 `.env` 后执行 `dock
 
 ## 安全设计与限制
 
-- 使用随机 state、浏览器 HttpOnly/SameSite cookie、nonce 和 PKCE S256；state 有效期5分钟且只能使用一次。
+- 使用随机 state、浏览器 HttpOnly/SameSite cookie、nonce，默认启用 PKCE S256（通用 OIDC 可按提供方机密客户端要求显式关闭）；state 有效期5分钟且只能使用一次。
 - ID Token 验证签名、issuer、audience、expiry、iat、新鲜度、subject、nonce、authorized party；不信任浏览器提交的身份。
 - client secret、ID Token、refresh/access token 不发送到前端。不会保存提供方 refresh token 或 access token。
 - 回调通过有效期60秒的一次性 HttpOnly cookie 交接，应用访问令牌只在同源 POST 响应返回，不放 URL 查询/片段。
@@ -59,3 +61,7 @@ Docker Compose 已透传这些环境变量：修改本地 `.env` 后执行 `dock
 `core/tests/oidc-login.test.js` 用本地生成的 RSA 签名验证 ID Token，覆盖错误签名/issuer/audience/nonce/azp、过期令牌、state/cookie绑定、跨提供方回调、一次性交接、Origin 校验、自动建用户、重复登录、禁用和关闭注册。
 
 外部登录端点在流程测试中使用桩。没有真实 Google Client ID/Secret 与公网回调配置，因此尚未做真实 Google/第三方端到端登录验证。部署后应先用测试用户完整走一遍登录与账号隔离。
+
+## 提供方兼容配置
+
+`OIDC_SCOPES` 默认 `openid profile`，需要邮箱时可显式配置 `openid profile email`。`OIDC_PKCE` 默认 `true`，仅通用 OIDC 可设置 `false`。`OIDC_TOKEN_AUTH_METHOD` 默认 `auto`，可显式选 `client_secret_post` 或 `client_secret_basic`，所选方法必须由 discovery 声明支持；不会自动降级到无密钥鉴权。Google 保持默认 PKCE。
