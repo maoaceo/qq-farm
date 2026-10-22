@@ -20,6 +20,7 @@ RUN npm config set registry "${NPM_REGISTRY}" \
 # Dependency installation is isolated from source copies so normal code changes
 # keep this expensive layer cached. The store cache also survives lockfile edits.
 FROM pnpm-base AS workspace-deps
+RUN apk add --no-cache python3 make g++
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY core/package.json ./core/
@@ -43,6 +44,7 @@ RUN pnpm -C core build:ts
 # Production dependencies have their own cached stage and are unaffected by
 # application source changes.
 FROM pnpm-base AS prod-deps
+RUN apk add --no-cache python3 make g++
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY core/package.json ./core/

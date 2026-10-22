@@ -62,3 +62,9 @@ cleanup.bat
 # Local protocol captures and generated runtime analysis
 protocol-captures/
 /docs/performance-analysis/
+
+# User database copies and migration backups
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.pre-sqlite.bak

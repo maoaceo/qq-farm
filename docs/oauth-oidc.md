@@ -40,7 +40,7 @@ Docker Compose 已透传这些环境变量：修改本地 `.env` 后执行 `dock
 - 首次通过可信提供方认证后，若 `OIDC_AUTO_REGISTER=true`，自动创建普通用户；用户名为服务器生成的 `sso_...`，初始没有游戏账号。
 - 后续按经过签名验证的 `(issuer, subject)` 找到同一用户。
 - 不使用邮箱、显示名或相同用户名自动合并账户；不同 issuer 即使邮箱相同也不会共享账号。当前没有账户绑定/解绑界面。
-- 新用户永远不会自动成为管理员。管理员仍使用现有本地密码登录，可禁用新用户及分配游戏账号。普通用户名密码注册是独立入口，由 LOCAL_REGISTRATION_ENABLED 控制。
+- 新用户永远不会自动成为管理员。管理员仍使用现有本地密码登录，可禁用新用户，但不能查看或管理其他用户的游戏账号。普通用户名密码注册是独立入口，由 LOCAL_REGISTRATION_ENABLED 控制。
 - 自动注册默认关闭：`OIDC_AUTO_REGISTER=false` 时仅已有身份映射可登录，不会建立新用户。启用即允许该提供方的有效身份自助注册，不额外限制邮箱域名；需要限制来源时应在提供方控制允许的用户群。
 - 第三方用户没有初始本地密码，不可直接用空密码或第三方邮箱密码登录。需要本地密码时由管理员在「用户管理」重置，之后可修改自己的密码。身份提供方仍负责其自身密码和 MFA。
 
@@ -50,7 +50,7 @@ Docker Compose 已透传这些环境变量：修改本地 `.env` 后执行 `dock
 - ID Token 验证签名、issuer、audience、expiry、iat、新鲜度、subject、nonce、authorized party；不信任浏览器提交的身份。
 - client secret、ID Token、refresh/access token 不发送到前端。不会保存提供方 refresh token 或 access token。
 - 回调通过有效期60秒的一次性 HttpOnly cookie 交接，应用访问令牌只在同源 POST 响应返回，不放 URL 查询/片段。
-- 新用户保存于原 users.json；禁用、密码重置和账号隔离沿用多用户版策略。
+- 新用户保存于 users.sqlite 数据库；禁用、密码重置和账号隔离沿用多用户版策略。
 - discovery 只来自管理员环境配置，配置本身属于受信任服务配置；不要允许不可信用户修改这些环境变量。
 - 未启用持久化/分布式登录流程缓存。多副本需粘性会话，重启或回调落到其他副本会导致本次登录失效；重新登录即可。
 - 当前应用仍沿用上游 localStorage bearer token，请做好 XSS 防护、HTTPS、访问限制和 CSP；本改造不是完整的身份管理平台。

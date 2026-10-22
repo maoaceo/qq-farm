@@ -31,7 +31,7 @@ test('ordinary registration, auto-login, role isolation, validation, toggle and 
   assert.equal((await request('/api/accounts',undefined,token)).body.data.accounts.length,0);
   assert.equal((await request('/api/login',{username:good.username,password:good.password})).status,200);
   assert.equal(users.list().some(u=>'password' in u),false);
-  const raw=JSON.parse(fs.readFileSync(path.join(tmp,'users.json'),'utf8')); assert.notEqual(raw.users[0].password,good.password);
+  const raw=require('../dist/models/user-database').db().prepare('SELECT password FROM users').get(); assert.notEqual(raw.password,good.password); assert.ok(fs.existsSync(path.join(tmp,'users.sqlite')));
   for (const body of [good,{...good,username:'NEW_USER'}, {...good,username:'admin'}, {...good,username:'bad name'}, {...good,username:'another',password:'123456',confirmPassword:'123456'}, {...good,username:'another',confirmPassword:'wrong'}, {username:'missing'}, {...good,username:{x:1}}]) {
     assert.equal((await request('/api/register',body)).status,400);
   }

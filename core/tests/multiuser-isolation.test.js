@@ -72,7 +72,7 @@ test('multi-user HTTP and realtime tenant isolation', async t => {
     const br = await api('POST', '/api/accounts', bob, { name: 'same-remark', code: 'bob-secret' });
     assert.equal(br.body.data.accounts.length, 1); assert.equal(br.body.data.accounts[0].ownerId, b.id);
     assert.equal(store.getAccounts().accounts.length, 3);
-    assert.equal((await api('GET', '/api/accounts', admin)).body.data.accounts.length, 3);
+    assert.equal((await api('GET', '/api/accounts', admin)).body.data.accounts.length, 1);
   });
   const aid = store.getAccounts().accounts.find(x => x.ownerId === a.id).id;
   const bid = store.getAccounts().accounts.find(x => x.ownerId === b.id).id;
@@ -161,11 +161,22 @@ test('multi-user HTTP and realtime tenant isolation', async t => {
     assert.equal((await api('GET', '/api/accounts', alice)).status, 401);
     alice = await login('alice', 'AnotherPass42!'); admin = await login('admin', 'admin');
   });
-  await t.test('admin can assign legacy accounts and old sessions lose access', async () => {
-    assert.equal((await api('POST', '/api/users/assign-account', admin, { accountId: '1', ownerId: a.id })).body.ok, true);
-    assert.equal((await api('GET', '/api/accounts', alice)).status, 401);
-    alice = await login('alice', 'AnotherPass42!');
-    assert.equal((await api('GET', '/api/accounts', alice)).body.data.accounts.length, 2);
-    assert.equal((await api('GET', '/api/status', bob, undefined, '1')).status, 403);
+  await t.test('administrator cannot access or manage other users game accounts', async () => {
+    assert.deepEqual((await api('GET', '/api/accounts', admin)).body.data.accounts.map(a=>a.id), ['1']);
+    for (const id of [aid,bid]) {
+      for (const [method,url,body,header] of [
+        ['GET','/api/status',undefined,id], ['GET',`/api/logs?accountId=${id}`],
+        ['POST',`/api/accounts/${id}/start`],['POST',`/api/accounts/${id}/stop`],['DELETE',`/api/accounts/${id}`],
+        ['POST','/api/accounts',{id,name:'admin-hijack'}], ['POST','/api/account/remark',{id,remark:'admin-hijack'}],
+        ['POST','/api/users/assign-account',{accountId:id,ownerId:'admin'}],
+      ]) assert.equal((await api(method,url,admin,body,header)).status,403,url);
+    }
+    const logs=(await api('GET','/api/logs?accountId=all',admin)).body.data;
+    assert.ok(logs.every(e=>e.accountId==='1'));
+    const s=socket(admin,'all'); const snap=await once(s,'logs:snapshot');
+    assert.ok(snap.logs.every(e=>e.accountId==='1'));
+    const denied=once(s,'subscription:error');s.emit('subscribe',{accountId:aid});await denied;s.disconnect();
+    assert.equal((await api('GET','/api/status',admin,undefined,'1')).status,200);
+    assert.equal((await api('GET','/api/users',admin)).status,200);
   });
 });

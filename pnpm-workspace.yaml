@@ -9,3 +9,6 @@ ignoredBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
   - protobufjs
+
+onlyBuiltDependencies:
+  - better-sqlite3

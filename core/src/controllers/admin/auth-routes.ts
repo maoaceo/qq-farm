@@ -93,14 +93,15 @@ function mountAuthRoutes(app: Application, ctx: AdminContext): void {
     app.get('/api/scheduler', async (req: Request, res: Response) => {
         try {
             const id = getAccId(ctx, req);
+            if (!id) return res.status(400).json({ ok: false, error: 'Missing own account ID' });
             if (ctx.provider && typeof ctx.provider.getSchedulerStatus === 'function') {
                 const data = await ctx.provider.getSchedulerStatus(id);
-                return res.json({ ok: true, data });
+                return res.json({ ok: true, data: { accountId: id, worker: data?.worker || null, workerError: data?.workerError || '' } });
             }
             return res.json({
                 ok: true,
                 data: {
-                    runtime: getSchedulerRegistrySnapshot(),
+                    runtime: [],
                     worker: null,
                     workerError: 'DataProvider does not support scheduler status',
                 },

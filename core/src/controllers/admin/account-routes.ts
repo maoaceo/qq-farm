@@ -159,7 +159,7 @@ function mountAccountRoutes(app: Application, ctx: AdminContext): void {
 
             // 与当前 web 前端保持一致：直接返回数组
             const ids = new Set(visible(ctx, req, getAccountList(ctx)).map((a: any) => String(a.id)));
-            res.json(principal(ctx, req).role === 'admin' ? list : list.filter((entry: any) => ids.has(String(entry.accountId))));
+            res.json(list.filter((entry: any) => ids.has(String(entry.accountId))));
         } catch (e: any) {
             handleApiError(res, e);
         }

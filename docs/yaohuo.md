@@ -42,7 +42,7 @@ docker compose up -d --build
 
 源码运行应使用原进程管理器注入这些环境变量并重新启动；项目不会自动为源码启动读取 `.env`。
 
-部署检查：访问 `https://farm.xaitr.com/api/oauth/providers` 应包含 `id: "oidc", name: "妖火"`，然后登录页会出现「使用 妖火 注册 / 登录」。首次认证成功自动创建普通用户，仅能管理自己的游戏账号。
+部署检查：访问 `https://farm.xaitr.com/api/oauth/providers` 应包含 `id: "oidc", name: "妖火"`，然后登录页会出现「使用 妖火 注册 / 登录」。首次认证成功自动创建普通用户，仅能管理自己的游戏账号，管理员也无法查看其账号。
 
 代码更新不等于网站启用：如果该接口仍返回 `data: []`，说明运行容器没有收到 Client ID/Secret/Issuer，检查 `.env`、Compose 更新及容器重建。严禁把本地 `.env` 提交到仓库。
 

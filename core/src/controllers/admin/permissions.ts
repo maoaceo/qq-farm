@@ -5,7 +5,7 @@ const users = require('../../models/user-store');
 const store = require('../../models/store');
 const { findAccountByRef } = require('../../services/account-resolver');
 function principal(ctx: AdminContext, req: Request): any { return users.find(ctx.sessions.get(String(req.headers['x-admin-token'] || '')) || ''); }
-function canAccess(user: any, account: any): boolean { return !!user && !!account && (user.role === 'admin' || account.ownerId === user.id); }
+function canAccess(user: any, account: any): boolean { return !!user && !!account && (String(account.ownerId || 'admin') === user.id); }
 function visible(ctx: AdminContext, req: Request, accounts: any[]): any[] { const u = principal(ctx, req); return accounts.filter(a => canAccess(u, a)); }
 function filterData(ctx: AdminContext, req: Request, data: any): any { return { ...data, accounts: visible(ctx, req, data.accounts || []) }; }
 function revoke(ctx: AdminContext, id: string): void {
@@ -18,10 +18,10 @@ function gate(ctx: AdminContext) {
         const u = principal(ctx, req);
         if (!u) return res.status(401).json({ ok: false, error: 'Unauthorized' });
         (req as any).user = u;
-        if (u.role === 'admin') return next();
+
         const path = req.path.toLowerCase().replace(/\/+$/, '') || '/';
         // Instance configuration and credentials are never exposed to ordinary users.
-        if (/^\/(?:users|scheduler)(?:\/|$)/i.test(path) || /^\/settings\/(?:system-config|device-presets|offline-reminder|theme)(?:\/|$)/i.test(path) || (path.toLowerCase() === '/settings/login-config' && req.method !== 'GET')) return res.status(403).json({ ok: false, error: '仅管理员可操作系统配置' });
+        if (u.role !== 'admin' && (/^\/(?:users|scheduler)(?:\/|$)/i.test(path) || /^\/settings\/(?:system-config|device-presets|offline-reminder|theme)(?:\/|$)/i.test(path) || (path.toLowerCase() === '/settings/login-config' && req.method !== 'GET'))) return res.status(403).json({ ok: false, error: '仅管理员可操作系统配置' });
         const accounts = store.getAccounts().accounts;
         const refs: any[] = [];
         const header = req.headers['x-account-id'];

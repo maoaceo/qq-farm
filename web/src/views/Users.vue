@@ -4,7 +4,6 @@ import api, { getApiErrorMessage } from '@/api'
 import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const users = ref<any[]>([])
-const accounts = ref<any[]>([])
 const username = ref('')
 const password = ref('')
 const message = ref('')
@@ -17,10 +16,9 @@ async function saveTurnstile() {
   })
 }
 async function load() {
-  const [u, a, c] = await Promise.all([api.get('/api/users'), api.get('/api/accounts'), api.get('/api/users/turnstile')])
+  const [u, c] = await Promise.all([api.get('/api/users'), api.get('/api/users/turnstile')])
   turnstile.value = { ...c.data.data, secretKey: '' }
   users.value = u.data.data || []
-  accounts.value = a.data.data?.accounts || []
 }
 async function perform(fn: () => Promise<any>) {
   if (busy.value) return
@@ -35,15 +33,6 @@ async function createUser() {
 async function resetPassword(user: any) {
   const next = window.prompt(`为 ${user.username} 设置新密码（至少6位且含两类字符）`)
   if (next) await perform(() => api.patch(`/api/users/${user.id}`, { password: next }))
-}
-async function assign(account: any, event: Event) {
-  const ownerId = (event.target as HTMLSelectElement).value
-  if (!window.confirm('转移后，原用户将失去此账号的访问权限。相关用户需重新登录，是否继续？')) { await load(); return }
-  await perform(async () => {
-    await api.post('/api/users/assign-account', { accountId: account.id, ownerId })
-    // Assignment may revoke this administrator session when moving a legacy account.
-    window.location.reload()
-  })
 }
 onMounted(async () => {
   await userStore.fetchUserInfo()
@@ -79,17 +68,7 @@ onMounted(async () => {
         <button class="rounded border px-3 py-1" :disabled="busy" @click="perform(() => api.patch(`/api/users/${u.id}`, { disabled: !u.disabled }))">{{ u.disabled ? '启用' : '禁用' }}</button>
       </div>
     </section>
-    <section class="farm-card space-y-3 rounded-lg p-4">
-      <h2 class="font-bold">账号归属</h2>
-      <p class="text-sm">升级前的游戏账号默认归管理员所有；可在此分配给用户。</p>
-      <div v-for="a in accounts" :key="a.id" class="flex flex-wrap items-center gap-3 border-b py-2">
-        <span>{{ a.name }}（{{ a.id }}）</span>
-        <select :value="a.ownerId || 'admin'" class="rounded border p-2 text-black" :disabled="busy" @change="assign(a, $event)">
-          <option value="admin">管理员</option>
-          <option v-for="u in users" :key="u.id" :value="u.id" :disabled="u.disabled">{{ u.username }}</option>
-        </select>
-      </div>
-    </section>
+
   </div>
   <p v-else class="p-4">仅管理员可访问。</p>
 </template>

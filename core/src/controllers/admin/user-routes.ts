@@ -28,14 +28,5 @@ function mountUserRoutes(app: Application, ctx: AdminContext): void {
         try { const id = String(req.params.id); const data = users.update(id, req.body || {}); revoke(ctx, id); res.json({ ok: true, data }); }
         catch (e: any) { res.status(400).json({ ok: false, error: e.message }); }
     });
-    app.post('/api/users/assign-account', (req, res) => {
-        const { accountId, ownerId } = req.body || {};
-        const account = store.getAccounts().accounts.find((a: any) => a.id === String(accountId));
-        if (!account || !users.find(String(ownerId))) return res.status(400).json({ ok: false, error: '账号或目标用户不存在/已禁用' });
-        store.addOrUpdateAccount({ id: account.id, ownerId: String(ownerId) });
-        // Clear snapshots and memberships on both sides immediately.
-        revoke(ctx, account.ownerId || 'admin'); revoke(ctx, String(ownerId));
-        return res.json({ ok: true });
-    });
 }
 module.exports = { mountUserRoutes };

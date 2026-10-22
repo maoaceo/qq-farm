@@ -29,8 +29,7 @@ function applySocketSubscription(ctx: AdminContext, socket: any, accountRef: str
         socket.join(`account:${resolved}`);
         socket.data.accountId = resolved;
     } else {
-        if (user.role === 'admin') socket.join('account:all');
-        else for (const a of allowed) socket.join(`account:${a.id}`);
+        for (const a of allowed) socket.join(`account:${a.id}`);
         socket.data.accountId = '';
     }
     socket.emit('subscribed', { accountId: socket.data.accountId || 'all' });
@@ -42,7 +41,7 @@ function applySocketSubscription(ctx: AdminContext, socket: any, accountRef: str
             socket.emit('status:update', { accountId: targetId, status: currentStatus });
         }
         if (ctx.provider && typeof ctx.provider.getLogs === 'function') {
-            let currentLogs: any[] = targetId || user.role === 'admin'
+            let currentLogs: any[] = targetId
                 ? ctx.provider.getLogs(targetId, { limit: 100 })
                 : allowed.flatMap((a: any) => ctx.provider.getLogs(a.id, { limit: 100 }) || []).sort((a: any, b: any) => Number(b.time) - Number(a.time)).slice(0, 100);
             if (!Array.isArray(currentLogs)) currentLogs = [];
@@ -55,7 +54,7 @@ function applySocketSubscription(ctx: AdminContext, socket: any, accountRef: str
         if (ctx.provider && typeof ctx.provider.getAccountLogs === 'function') {
             let currentAccountLogs: any[] = ctx.provider.getAccountLogs(100);
             if (!Array.isArray(currentAccountLogs)) currentAccountLogs = [];
-            if (user.role !== 'admin') currentAccountLogs = currentAccountLogs.filter((e: any) => allowed.some((a: any) => String(a.id) === String(e.accountId)));
+            currentAccountLogs = currentAccountLogs.filter((e: any) => allowed.some((a: any) => String(a.id) === String(e.accountId)));
 
             socket.emit('account-logs:snapshot', {
                 logs: currentAccountLogs,
