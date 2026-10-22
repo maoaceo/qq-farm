@@ -6,10 +6,12 @@ export interface MenuItem {
   component: () => Promise<any>
   meta?: {
     fullBleed?: boolean
+    adminOnly?: boolean
   }
 }
 
 export const menuRoutes: MenuItem[] = [
+  { path: 'users', name: 'users', label: '用户管理', icon: 'i-carbon-user-multiple', component: () => import('@/views/Users.vue'), meta: { adminOnly: true } },
   {
     path: '',
     name: 'dashboard',

@@ -1,0 +1,19 @@
+QQ Farm Bot multi-user + Google/OIDC edition
+Upstream: https://github.com/liyangpengs/qq-farm-bot
+Base commit: 28a96145fb92c4b9e8e6e27222a0cc5b3735cf92
+Destination requested by user: https://github.com/maoaceo/qq-farm
+
+Validated in Debian chroot, Node.js v20.19.2, pnpm 10.30.2.
+- pnpm -C core typecheck: PASS
+- pnpm typecheck:web: PASS
+- pnpm build: PASS
+- pnpm -C core test: 288 passed, 0 failed
+- pnpm -C web test: 13 passed, 0 failed
+
+Integration tests: multiuser-isolation.test.js, oidc-login.test.js.
+OIDC cryptographic tests use real locally generated RSA keys.
+External QQ/WeChat/OIDC services are mocked for flow tests.
+No real Google/OIDC or game account end-to-end verification was performed.
+No existing production instance or account data was modified.
+GitHub push status must be verified separately; this file does not claim upload.
+See docs/multiuser.md and docs/oauth-oidc.md.

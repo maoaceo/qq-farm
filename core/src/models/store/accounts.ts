@@ -46,7 +46,6 @@ function normalizeAccountsData(raw: unknown): AccountsData {
     const maxId = accounts.reduce((m: number, a: any) => Math.max(m, Number.parseInt(a && a.id, 10) || 0), 0);
     let nextId = Number.parseInt(data.nextId, 10);
     if (!Number.isFinite(nextId) || nextId <= 0) nextId = maxId + 1;
-    if (accounts.length === 0) nextId = 1;
     if (nextId <= maxId) nextId = maxId + 1;
     return { accounts, nextId };
 }
@@ -55,6 +54,7 @@ function normalizeAccount(raw: any): Account {
     const source = raw && typeof raw === 'object' ? raw : {};
     const account: Account = {
         id: String(source.id || ''),
+        ownerId: String(source.ownerId || 'admin'),
         name: String(source.name || ''),
         code: String(source.code || ''),
         platform: String(source.platform || 'qq'),
@@ -75,7 +75,7 @@ function addOrUpdateAccount(acc: Partial<Account> & { avatarUrl?: string }): Acc
     let touchedAccountId = '';
     const source: any = acc || {};
     const cleanAccount: any = {};
-    for (const key of ['id', 'name', 'code', 'platform', 'uin', 'qq', 'avatar', 'avatarUrl', 'nick']) {
+    for (const key of ['id', 'name', 'code', 'platform', 'uin', 'qq', 'avatar', 'avatarUrl', 'nick', 'ownerId']) {
         if (source[key] !== undefined) cleanAccount[key] = source[key];
     }
     acc = cleanAccount;
@@ -90,6 +90,7 @@ function addOrUpdateAccount(acc: Partial<Account> & { avatarUrl?: string }): Acc
         touchedAccountId = String(id);
         data.accounts.push({
             id: touchedAccountId,
+            ownerId: acc.ownerId || 'admin',
             name: acc.name || `账号${id}`,
             code: acc.code || '',
             platform: acc.platform || 'qq',
@@ -111,9 +112,6 @@ function deleteAccount(id: unknown): AccountsData {
     const { removeAccountConfig } = require('./account-config');
     const data = getAccounts();
     data.accounts = data.accounts.filter(a => a.id !== String(id));
-    if (data.accounts.length === 0) {
-        data.nextId = 1;
-    }
     saveAccounts(data);
     removeAccountConfig(id);
     return data;

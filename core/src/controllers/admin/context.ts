@@ -10,6 +10,7 @@ export {};
 
 export interface AdminContext {
     tokens: Set<string>;
+    sessions: Map<string, string>;
     app: Application | null;
     server: Server | null;
     io: SocketIOServer | null;
@@ -20,6 +21,7 @@ function createAdminContext(dataProvider: any): AdminContext {
     const tokens = new Set<string>();
     return {
         tokens,
+        sessions: new Map(),
         app: null,
         server: null,
         io: null,

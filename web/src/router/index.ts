@@ -65,7 +65,14 @@ const router = createRouter({
 
 router.beforeEach(async (to, _from) => {
   NProgress.start()
+  if (to.meta.adminOnly) {
+    try {
+      const res = await axios.get('/api/user/me', { headers: { 'x-admin-token': adminToken.value } })
+      if (res.data?.data?.role !== 'admin') return { name: 'dashboard' }
+    } catch { return { name: 'login' } }
+  }
 
+  if (to.name === 'login' && ['complete', 'error'].includes(String(to.query.oauth || ''))) return true
   if (to.name === 'login') {
     if (!adminToken.value) {
       validatedToken = ''

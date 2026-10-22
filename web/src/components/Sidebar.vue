@@ -282,7 +282,7 @@ const connectionStatus = computed(() => {
 })
 
 const navItems = computed(() => {
-  return menuRoutes
+  return menuRoutes.filter(item => !item.meta?.adminOnly || userStore.userInfo?.role === 'admin')
     .map(item => ({
       path: item.path ? `/${item.path}` : '/',
       label: item.label,
@@ -410,7 +410,7 @@ async function copyToken() {
                     <span
                       class="admin-badge rounded-lg px-1.5 py-0.2 text-[10px] font-medium leading-tight"
                     >
-                      超级管理员
+                      {{ userStore.userInfo?.role === 'admin' ? '超级管理员' : '普通用户' }}
                     </span>
                   </div>
                 </div>
@@ -424,7 +424,7 @@ async function copyToken() {
           </template>
           <div class="sidebar-tooltip-content">
             <strong>{{ userStore.username || '未登录' }}</strong>
-            <span>超级管理员 · 点击查看账户菜单</span>
+            <span>{{ userStore.userInfo?.role === 'admin' ? '超级管理员' : '普通用户' }} · 点击查看账户菜单</span>
           </div>
         </NTooltip>
 
@@ -438,7 +438,7 @@ async function copyToken() {
               {{ userStore.username }}
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-400">
-              超级管理员
+              {{ userStore.userInfo?.role === 'admin' ? '超级管理员' : '普通用户' }}
             </div>
           </div>
           <div class="py-1">

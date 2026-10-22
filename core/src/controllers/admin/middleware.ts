@@ -4,6 +4,7 @@ export {};
 
 const crypto = require('node:crypto');
 const store = require('../../models/store');
+const users = require('../../models/user-store');
 const { normalizeAccountRef, resolveAccountId } = require('../../services/account-resolver');
 
 interface AuthenticatedRequest extends Request {
@@ -29,7 +30,7 @@ const issueToken = (): string => crypto.randomBytes(24).toString('hex');
 function createAuthRequired(ctx: AdminContext) {
     return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
         const token = String(req.headers['x-admin-token'] || '');
-        if (!token || !ctx.tokens.has(token)) {
+        if (!token || !ctx.tokens.has(token) || !users.find(ctx.sessions.get(token) || '')) {
             res.status(401).json({ ok: false, error: 'Unauthorized' });
             return;
         }
@@ -104,7 +105,10 @@ function resolveAccId(ctx: AdminContext, rawRef: any): string {
 }
 
 function getAccId(ctx: AdminContext, req: Request): string {
-    return resolveAccId(ctx, req.headers['x-account-id']);
+    const id = resolveAccId(ctx, req.headers['x-account-id']);
+    const { principal, canAccess } = require('./permissions');
+    if (id && !canAccess(principal(ctx, req), store.getAccounts().accounts.find((a: any) => a.id === id))) return '';
+    return id;
 }
 
 function buildKnownFriendGidSettings(accountId: string): {

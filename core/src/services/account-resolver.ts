@@ -24,6 +24,10 @@ function findAccountByRef(accounts: any, rawRef: any): any {
     if (!key) return null;
 
     const list: any[] = Array.isArray(accounts) ? accounts : [];
+    // Canonical IDs must take precedence over user-editable QQ/UIN aliases.
+    // Otherwise an alias equal to another tenant's ID can redirect a checked operation.
+    const exact = list.find(account => account && normalizeAccountRef(account.id) === key);
+    if (exact) return exact;
     for (const account of list) {
         if (!account || typeof account !== 'object') continue;
         const keys: Set<string> = buildAccountKeys(account);

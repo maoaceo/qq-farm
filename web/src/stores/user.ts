@@ -5,7 +5,7 @@ import api, { getApiErrorMessage } from '@/api'
 
 export interface AdminInfo {
   username: string
-  role: 'admin'
+  role: 'admin' | 'user'
   avatar?: string
   mustChangePassword?: boolean
 }
@@ -17,7 +17,7 @@ export interface LoginResult {
   remainingMs?: number
   data?: {
     token: string
-    role: 'admin'
+    role: 'admin' | 'user'
     user: { username: string }
     mustChangePassword?: boolean
   }
@@ -34,10 +34,11 @@ export const useUserStore = defineStore('user', () => {
     try {
       const res = await api.post('/api/login', { username, password })
       if (res.data.ok) {
+        localStorage.removeItem('current_account_id')
         token.value = res.data.data.token
         userInfo.value = {
           username: res.data.data.user.username,
-          role: 'admin',
+          role: res.data.data.role,
           mustChangePassword: res.data.data.mustChangePassword,
         }
       }
@@ -49,6 +50,14 @@ export const useUserStore = defineStore('user', () => {
         ? { ok: false, error: getApiErrorMessage(data, '网络错误'), errorType: data.errorType, remainingMs: data.remainingMs }
         : { ok: false, error: getApiErrorMessage(error, '网络错误') }
     }
+  }
+
+  async function completeOAuth() {
+    const res = await api.post('/api/oauth/exchange')
+    if (!res.data.ok) throw new Error('第三方登录失败')
+    localStorage.removeItem('current_account_id')
+    token.value = res.data.data.token
+    userInfo.value = { username: res.data.data.user.username, role: res.data.data.role }
   }
 
   async function logout() {
@@ -88,5 +97,6 @@ export const useUserStore = defineStore('user', () => {
     logout,
     fetchUserInfo,
     changePassword,
+    completeOAuth,
   }
 })

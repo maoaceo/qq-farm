@@ -7,6 +7,8 @@ const { getRuntimeConfig } = require('../../config/config');
 const { getSchedulerRegistrySnapshot } = require('../../services/scheduler');
 const { createModuleLogger } = require('../../services/logger');
 const adminStore = require('../../models/admin-store');
+const userStore = require('../../models/user-store');
+const permissions = require('./permissions');
 
 const {
     getClientIp,
@@ -20,6 +22,7 @@ const adminLogger = createModuleLogger('admin');
 
 function mountAuthRoutes(app: Application, ctx: AdminContext): void {
     const authRequired = createAuthRequired(ctx);
+    require('./oauth-routes').mountOAuthRoutes(app, ctx);
 
     app.post('/api/login', (req: Request, res: Response) => {
         const { username, password } = req.body || {};
@@ -27,8 +30,8 @@ function mountAuthRoutes(app: Application, ctx: AdminContext): void {
             return res.status(401).json({ ok: false, error: '请输入用户名和密码' });
         }
 
-        const clientIp = getClientIp(req);
-        const result = adminStore.validateAdmin(String(username), String(password), clientIp);
+        const clientIp = String(req.socket.remoteAddress || 'unknown');
+        const result = userStore.validate(String(username), String(password), clientIp);
         if (result?.error) {
             const statusCode = result.error === 'rate_limit' ? 429 : result.error === 'locked' ? 423 : 401;
             adminLogger.warn('登录失败', { username, error: result.error, ip: clientIp });
@@ -42,12 +45,13 @@ function mountAuthRoutes(app: Application, ctx: AdminContext): void {
 
         const token = issueToken();
         ctx.tokens.add(token);
-        adminLogger.info('超级管理员登录成功', { username: result.username, ip: clientIp });
+        ctx.sessions.set(token, result.id);
+        adminLogger.info('面板用户登录成功', { username: result.username, role: result.role, ip: clientIp });
         return res.json({
             ok: true,
             data: {
                 token,
-                role: 'admin',
+                role: result.role,
                 user: { username: result.username },
                 mustChangePassword: result.mustChangePassword === true,
             },
@@ -59,8 +63,9 @@ function mountAuthRoutes(app: Application, ctx: AdminContext): void {
         if (!oldPassword || !newPassword) {
             return res.status(400).json({ ok: false, error: '请提供原密码和新密码' });
         }
-        const result = adminStore.changePassword(String(oldPassword), String(newPassword));
-        if (result.ok) ctx.tokens.clear();
+        const user = permissions.principal(ctx, req);
+        const result = userStore.changePassword(user.id, String(oldPassword), String(newPassword));
+        if (result.ok) permissions.revoke(ctx, user.id);
         return res.json(result);
     });
 
@@ -68,6 +73,8 @@ function mountAuthRoutes(app: Application, ctx: AdminContext): void {
         if (req.path === '/login' || req.path === '/game-version') return next();
         return authRequired(req, res, next);
     });
+
+    app.use('/api', permissions.gate(ctx));
 
     app.get('/api/ping', (_req: Request, res: Response) => {
         res.json({ ok: true, data: { ok: true, uptime: process.uptime(), version } });
@@ -104,7 +111,7 @@ function mountAuthRoutes(app: Application, ctx: AdminContext): void {
 
     app.post('/api/logout', (req: Request, res: Response) => {
         const token = (req as any).adminToken;
-        if (token) ctx.tokens.delete(token);
+        if (token) { ctx.tokens.delete(token); ctx.sessions.delete(token); }
         if (ctx.io && token) {
             for (const socket of ctx.io.sockets.sockets.values()) {
                 if (String((socket.data as any).adminToken || '') === String(token)) socket.disconnect(true);
@@ -113,8 +120,8 @@ function mountAuthRoutes(app: Application, ctx: AdminContext): void {
         res.json({ ok: true });
     });
 
-    app.get('/api/user/me', (_req: Request, res: Response) => {
-        res.json({ ok: true, data: adminStore.getAdminInfo() });
+    app.get('/api/user/me', (req: Request, res: Response) => {
+        res.json({ ok: true, data: permissions.principal(ctx, req) });
     });
 }
 

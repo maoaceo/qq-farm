@@ -1,6 +1,7 @@
 export {};
 export interface Account {
   id: string;
+  ownerId?: string;
   name: string;
   code: string;
   platform: string;

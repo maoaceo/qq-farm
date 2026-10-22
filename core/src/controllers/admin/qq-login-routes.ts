@@ -22,11 +22,19 @@ function sendError(res: Response, error: any, fallback: string): void {
 }
 
 function mountQqLoginRoutes(app: Application, ctx: AdminContext): void {
+    const owners = new Map<string, { owner: string; expires: number }>();
     app.use('/api/qq-login', createAuthRequired(ctx));
+    app.use('/api/qq-login/tasks/:taskId', (req: Request, res: Response, next: any) => {
+        const task = owners.get(String(req.params.taskId));
+        if (!task || task.expires < Date.now() || task.owner !== (req as any).user.id) return res.status(404).json({ ok: false, error: 'Login task not found' });
+        return next();
+    });
 
-    app.post('/api/qq-login/tasks', async (_req: Request, res: Response) => {
+    app.post('/api/qq-login/tasks', async (req: Request, res: Response) => {
         try {
+            for (const [id, t] of owners) if (t.expires < Date.now()) owners.delete(id);
             const task = await createLoginTask();
+            owners.set(task.taskId, { owner: (req as any).user.id, expires: Date.now() + 10 * 60_000 });
             res.json({ ok: true, data: publicTask(task) });
         }
         catch (error: any) {

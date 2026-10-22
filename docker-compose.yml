@@ -19,6 +19,14 @@ services:
       - TZ=${TZ:-Asia/Shanghai}
       - NODE_ENV=production
       - ADMIN_PORT=3007
+      - AUTH_PUBLIC_URL=${AUTH_PUBLIC_URL:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - OIDC_NAME=${OIDC_NAME:-OIDC}
+      - OIDC_ISSUER=${OIDC_ISSUER:-}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-}
+      - OIDC_AUTO_REGISTER=${OIDC_AUTO_REGISTER:-false}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3007/api/game-version"]
       interval: 30s

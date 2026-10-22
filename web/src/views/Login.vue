@@ -113,7 +113,22 @@ async function fetchGameVersion() {
   }
 }
 
-onMounted(fetchGameVersion)
+const oauthProviders = ref<{ id: string, name: string, url: string }[]>([])
+onMounted(async () => {
+  const oauth = new URLSearchParams(window.location.search).get('oauth')
+  if (oauth === 'complete') {
+    // Remove callback marker without exposing tokens or codes in browser history.
+    window.history.replaceState(null, '', '/login')
+    try { await userStore.completeOAuth(); window.location.replace('/'); return }
+    catch { error.value = '第三方登录失败或会话过期，请重试' }
+  }
+  else if (oauth === 'error') {
+    window.history.replaceState(null, '', '/login')
+    error.value = '第三方认证失败、用户已禁用或尚未开启自动注册，请联系管理员'
+  }
+  await fetchGameVersion()
+  try { const res = await api.get('/api/oauth/providers'); if (res.data.ok) oauthProviders.value = res.data.data } catch { /* Local password login remains available. */ }
+})
 </script>
 
 <template>
@@ -127,11 +142,17 @@ onMounted(fetchGameVersion)
             QQ农场智能助手
           </h1>
           <p class="logo-subtitle">
-            超级管理员登录
+            用户登录
           </p>
         </div>
       </header>
 
+      <div v-if="oauthProviders.length" class="mb-4 flex flex-col gap-3">
+        <a v-for="provider in oauthProviders" :key="provider.id" :href="provider.url" class="rounded-lg border p-3 text-center">
+          使用 {{ provider.name }} 注册 / 登录
+        </a>
+        <p class="text-center text-xs">首次认证成功后自动创建独立普通用户（需管理员开启）</p>
+      </div>
       <form class="form-area" @submit.prevent="handleSubmit">
         <div class="form-group">
           <label class="form-label" for="username">
